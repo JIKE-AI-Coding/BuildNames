@@ -58,7 +58,7 @@ npm run build
 - **语言**：TypeScript
 - **样式**：Tailwind CSS v4
 - **AI**：OpenAI GPT-4o-mini
-- **域名验证**：Cloudflare DNS-over-HTTPS API
+- **域名验证**：WhoisCX API（支持 .com, .io, .app, .dev, .ai）
 - **GitHub API**：GitHub Search API
 
 ## 项目结构

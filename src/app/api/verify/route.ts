@@ -74,13 +74,9 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
 async function checkDomain(name: string, tld: string): Promise<boolean> {
   try {
     const domain = `${name.toLowerCase()}.${tld}`;
-    const url = `https://cloudflare-dns.com/dns-query?type=A&name=${encodeURIComponent(domain)}`;
+    const url = `https://api.whoiscx.com/whois/?domain=${encodeURIComponent(domain)}`;
 
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/dns-json",
-      },
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       return true;
@@ -88,14 +84,12 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
 
     const data = await response.json();
 
-    if (data.Status === 3) {
-      return true;
+    // is_available: 1 = available, 0 = registered
+    if (data.status === 1) {
+      return data.is_available === 1;
     }
 
-    if (data.Answer && data.Answer.length > 0) {
-      return false;
-    }
-
+    // If API returns error status, assume available (optimistic)
     return true;
   } catch (error) {
     console.error("Domain check error:", error);

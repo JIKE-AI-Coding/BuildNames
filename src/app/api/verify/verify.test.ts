@@ -8,15 +8,16 @@ vi.stubEnv('GITHUB_TOKEN', mockGithubToken)
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Helper to create DNS response for all TLDs
+// Helper to create whoiscx response for all TLDs - available
 const createAllTldsAvailableResponse = () => ({
   ok: true,
-  json: async () => ({ Status: 3 }), // NXDOMAIN - available
+  json: async () => ({ status: 1, is_available: 1, domain: '' }),
 })
 
+// Helper to create whoiscx response for all TLDs - taken
 const createAllTldsTakenResponse = () => ({
   ok: true,
-  json: async () => ({ Status: 0, Answer: [{ data: '192.0.2.1' }] }),
+  json: async () => ({ status: 1, is_available: 0, domain: '' }),
 })
 
 describe('/api/verify', () => {
