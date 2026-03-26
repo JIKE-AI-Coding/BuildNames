@@ -141,7 +141,8 @@ describe('/api/generate', () => {
         choices: [
           {
             message: {
-              content: 'TimeKeeper\nFlowState\nDevTimer\nFocusFlow\nCodeClock\nTaskPilot\nMinuteMind\nSwiftTrack\nWorkPulse\nPlanRush',
+              content:
+                'TimeKeeper:简洁有力，突出时间管理的核心功能\nFlowState:表达专注工作状态的概念\nDevTimer:直指开发者工具的属性\nFocusFlow:结合专注和流程的意象\nCodeClock:程序员与时间的关联\nTaskPilot:任务导航的隐喻\nMinuteMind:强调分钟级精确\nSwiftTrack:快速追踪的概念\nWorkPulse:工作节奏的韵律\nPlanRush:计划与效率的结合',
             },
           },
         ],
@@ -168,8 +169,9 @@ describe('/api/generate', () => {
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
       expect(data.data.names).toHaveLength(10)
-      expect(data.data.names).toContain('TimeKeeper')
-      expect(data.data.names).toContain('FlowState')
+      expect(data.data.names[0].name).toBe('TimeKeeper')
+      expect(data.data.names[0].reason).toBe('简洁有力，突出时间管理的核心功能')
+      expect(data.data.names[1].name).toBe('FlowState')
     })
 
     it('should return 500 when OpenAI API returns error', async () => {
@@ -242,7 +244,8 @@ describe('/api/generate', () => {
         choices: [
           {
             message: {
-              content: '  TimeKeeper  \n\nFlowState\n  \nDevTimer\n',
+              content:
+                '  TimeKeeper:简洁有力  \n\nFlowState:专注状态\n  \nDevTimer:开发者计时\n',
             },
           },
         ],
@@ -269,9 +272,10 @@ describe('/api/generate', () => {
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
       expect(data.data.names).toHaveLength(3)
-      expect(data.data.names).toContain('TimeKeeper')
-      expect(data.data.names).toContain('FlowState')
-      expect(data.data.names).toContain('DevTimer')
+      expect(data.data.names[0].name).toBe('TimeKeeper')
+      expect(data.data.names[0].reason).toBe('简洁有力')
+      expect(data.data.names[1].name).toBe('FlowState')
+      expect(data.data.names[2].name).toBe('DevTimer')
     })
   })
 })

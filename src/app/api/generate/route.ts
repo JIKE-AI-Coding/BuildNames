@@ -9,7 +9,7 @@ export interface GenerateRequest {
 export interface GenerateResponse {
   success: boolean;
   data?: {
-    names: string[];
+    names: { name: string; reason: string }[];
   };
   error?: string;
 }
@@ -74,7 +74,13 @@ export async function POST(request: NextRequest) {
 4. 在 GitHub 和主流域名（如 .com）上可用
 5. 避免使用连字符或数字
 
-请只返回10个名称，用换行分隔，不要包含任何解释或其他内容。`;
+请按以下格式返回10个名称和理由（用英文冒号分隔）：
+名称:理由
+示例：
+TimeKeeper:简洁有力，突出时间管理的核心功能
+FlowState:表达专注工作状态的概念
+
+请直接返回10行，不要包含序号或其他内容。`;
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
@@ -119,12 +125,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse names - split by newline and filter empty lines
-    const names = content
+    // Parse names and reasons - split by newline, each line is "名称:理由"
+    const lines = content
       .split("\n")
       .map((line: string) => line.trim())
       .filter((line: string) => line.length > 0)
-      .slice(0, 10); // Ensure max 10 names
+
+    const names = lines.slice(0, 10).map((line: string) => {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex > 0) {
+        return {
+          name: line.slice(0, colonIndex).trim(),
+          reason: line.slice(colonIndex + 1).trim(),
+        };
+      }
+      // Fallback: if no colon found, treat whole line as name with empty reason
+      return { name: line, reason: "" };
+    });
 
     if (names.length === 0) {
       return NextResponse.json<GenerateResponse>(

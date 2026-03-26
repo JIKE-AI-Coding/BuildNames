@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 
 interface NameResult {
   name: string;
+  reason?: string;
   githubAvailable?: boolean;
   domainAvailable?: boolean;
   verified?: boolean;
@@ -61,10 +62,13 @@ export default function Home() {
         return;
       }
 
-      const initialNames = data.data.names.map((name: string) => ({
-        name,
-        verified: false,
-      }));
+      const initialNames = data.data.names.map(
+        (item: { name: string; reason: string }) => ({
+          name: item.name,
+          reason: item.reason,
+          verified: false,
+        })
+      );
       setNames(initialNames);
       setIsGenerating(false);
 
@@ -295,24 +299,25 @@ export default function Home() {
               {names.map((item, index) => (
                 <div
                   key={`${item.name}-${index}`}
-                  className="group flex items-center justify-between py-3 px-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:border-[#2563EB] transition-colors"
+                  className="group py-3 px-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:border-[#2563EB] transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => handleCopy(item.name)}
-                      className="text-[#111827] font-medium hover:text-[#2563EB] transition-colors cursor-pointer"
-                      title="点击复制"
-                    >
-                      {item.name}
-                    </button>
-                    {copiedName === item.name && (
-                      <span className="text-[#10B981] text-sm animate-pulse">
-                        ✓
-                      </span>
-                    )}
-                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleCopy(item.name)}
+                        className="text-[#111827] font-medium hover:text-[#2563EB] transition-colors cursor-pointer"
+                        title="点击复制"
+                      >
+                        {item.name}
+                      </button>
+                      {copiedName === item.name && (
+                        <span className="text-[#10B981] text-sm animate-pulse">
+                          ✓
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4">
                     {item.verified ? (
                       <>
                         <div className="flex items-center gap-1.5 text-sm">
@@ -373,6 +378,10 @@ export default function Home() {
                       </div>
                     )}
                   </div>
+                  </div>
+                  {item.reason && (
+                    <p className="text-sm text-[#6B7280] mt-1.5">{item.reason}</p>
+                  )}
                 </div>
               ))}
             </div>
