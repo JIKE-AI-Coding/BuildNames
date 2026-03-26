@@ -14,6 +14,12 @@ export interface VerificationResult {
     dev: boolean;
     ai: boolean;
   };
+  scores?: {
+    githubScore: number;
+    domainScore: number;
+    lengthBonus: number;
+    totalScore: number;
+  };
 }
 
 export interface VerifyResponse {
@@ -107,6 +113,40 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
   return domains;
 }
 
+function calculateDomainScore(domains: VerificationResult["domains"]): number {
+  // Priority: .com = 1.0, .io = 0.7, .app/.dev/.ai = 0.4
+  if (domains.com) return 1.0;
+  if (domains.io) return 0.7;
+  if (domains.app || domains.dev || domains.ai) return 0.4;
+  return 0;
+}
+
+function calculateLengthBonus(name: string): number {
+  // 2-6 chars = 0.2, 7-10 chars = 0.1, >10 chars = 0
+  const len = name.length;
+  if (len >= 2 && len <= 6) return 0.2;
+  if (len >= 7 && len <= 10) return 0.1;
+  return 0;
+}
+
+function calculateScores(
+  name: string,
+  githubAvailable: boolean,
+  domains: VerificationResult["domains"]
+): VerificationResult["scores"] {
+  const githubScore = githubAvailable ? 1.0 : 0;
+  const domainScore = calculateDomainScore(domains);
+  const lengthBonus = calculateLengthBonus(name);
+  const totalScore = githubScore + domainScore + lengthBonus;
+
+  return {
+    githubScore,
+    domainScore,
+    lengthBonus,
+    totalScore: Math.round(totalScore * 100) / 100, // Round to 2 decimal places
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: VerifyRequest = await request.json();
@@ -141,10 +181,12 @@ export async function POST(request: NextRequest) {
             checkGithub(name, githubToken),
             checkAllDomains(name),
           ]);
+          const scores = calculateScores(name, githubAvailable, domains);
           return {
             name,
             githubAvailable,
             domains,
+            scores,
           };
         })
       );

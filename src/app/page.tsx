@@ -13,6 +13,12 @@ interface NameResult {
     dev: boolean;
     ai: boolean;
   };
+  scores?: {
+    githubScore: number;
+    domainScore: number;
+    lengthBonus: number;
+    totalScore: number;
+  };
   verified?: boolean;
 }
 
@@ -302,7 +308,9 @@ export default function Home() {
             </div>
 
             <div className="space-y-2" role="list">
-              {names.map((item, index) => (
+              {[...names]
+                .sort((a, b) => (b.scores?.totalScore || 0) - (a.scores?.totalScore || 0))
+                .map((item, index) => (
                 <div
                   key={`${item.name}-${index}`}
                   className="group py-3 px-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:border-[#2563EB] transition-colors"
@@ -319,6 +327,11 @@ export default function Home() {
                       {copiedName === item.name && (
                         <span className="text-[#10B981] text-sm animate-pulse">
                           ✓
+                        </span>
+                      )}
+                      {item.verified && item.scores && (
+                        <span className="text-xs font-mono px-1.5 py-0.5 bg-[#DBEAFE] text-[#2563EB] rounded">
+                          {item.scores.totalScore.toFixed(2)}
                         </span>
                       )}
                     </div>
