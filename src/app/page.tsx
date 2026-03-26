@@ -112,28 +112,76 @@ export default function Home() {
         return;
       }
 
-      // Merge verification results with existing names
-      setNames((prevNames) =>
-        prevNames.map((nameObj) => {
-          const result = data.data.results.find(
-            (r: { name: string }) => r.name === nameObj.name
-          );
-          return result
-            ? {
-                ...nameObj,
-                githubAvailable: result.githubAvailable,
-                domains: result.domains,
-                verified: true,
-              }
-            : nameObj;
-        })
-      );
-      setIsVerifying("idle");
+      // Check if async job (has jobId) or sync results
+      if (data.data.jobId) {
+        // Async job - poll for results
+        pollForResults(data.data.jobId, namesToVerify);
+      } else if (data.data.results) {
+        // Sync results (small request)
+        mergeResults(data.data.results);
+        setIsVerifying("idle");
+      }
     } catch (err) {
       console.error("Verify error:", err);
       setError("验证失败，请重试");
       setIsVerifying("idle");
     }
+  };
+
+  const pollForResults = async (jobId: string, namesToVerify: string[]) => {
+    const maxAttempts = 20;
+    const intervalMs = 1000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`/api/verify?jobId=${jobId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          setError(data.error || "查询任务状态失败");
+          setIsVerifying("idle");
+          return;
+        }
+
+        if (data.data.status === "completed" && data.data.results) {
+          mergeResults(data.data.results);
+          setIsVerifying("idle");
+          return;
+        }
+
+        if (data.data.status === "failed") {
+          setError(data.data.error || "验证任务失败");
+          setIsVerifying("idle");
+          return;
+        }
+
+        // Still pending, wait and retry
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      } catch (err) {
+        console.error("Poll error:", err);
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+    }
+
+    setError("验证超时，请重试");
+    setIsVerifying("idle");
+  };
+
+  const mergeResults = (results: { name: string; githubAvailable: boolean; domains: { com: boolean; io: boolean; app: boolean; dev: boolean; ai: boolean }; scores: { githubScore: number; domainScore: number; lengthBonus: number; totalScore: number } }[]) => {
+    setNames((prevNames) =>
+      prevNames.map((nameObj) => {
+        const result = results.find((r) => r.name === nameObj.name);
+        return result
+          ? {
+              ...nameObj,
+              githubAvailable: result.githubAvailable,
+              domains: result.domains,
+              scores: result.scores,
+              verified: true,
+            }
+          : nameObj;
+      })
+    );
   };
 
   const handleCopy = async (name: string) => {

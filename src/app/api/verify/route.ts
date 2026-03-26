@@ -25,9 +25,25 @@ export interface VerificationResult {
 export interface VerifyResponse {
   success: boolean;
   data?: {
-    results: VerificationResult[];
+    jobId?: string;
+    results?: VerificationResult[];
   };
   error?: string;
+}
+
+// In-memory job storage (for development)
+// In production, use Vercel KV or Upstash Redis
+const jobStore = new Map<
+  string,
+  {
+    status: "pending" | "completed" | "failed";
+    results?: VerificationResult[];
+    error?: string;
+  }
+>();
+
+function generateJobId(): string {
+  return `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
 async function checkGithub(name: string, token?: string): Promise<boolean> {
@@ -48,7 +64,6 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
     }
 
     const data = await response.json();
-    // If total_count > 0, there's at least one repo with this name
     return data.total_count === 0;
   } catch (error) {
     console.error("GitHub check error:", error);
@@ -114,7 +129,6 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
 }
 
 function calculateDomainScore(domains: VerificationResult["domains"]): number {
-  // Priority: .com = 1.0, .io = 0.7, .app/.dev/.ai = 0.4
   if (domains.com) return 1.0;
   if (domains.io) return 0.7;
   if (domains.app || domains.dev || domains.ai) return 0.4;
@@ -122,7 +136,6 @@ function calculateDomainScore(domains: VerificationResult["domains"]): number {
 }
 
 function calculateLengthBonus(name: string): number {
-  // 2-6 chars = 0.2, 7-10 chars = 0.1, >10 chars = 0
   const len = name.length;
   if (len >= 2 && len <= 6) return 0.2;
   if (len >= 7 && len <= 10) return 0.1;
@@ -143,33 +156,16 @@ function calculateScores(
     githubScore,
     domainScore,
     lengthBonus,
-    totalScore: Math.round(totalScore * 100) / 100, // Round to 2 decimal places
+    totalScore: Math.round(totalScore * 100) / 100,
   };
 }
 
-export async function POST(request: NextRequest) {
+async function processVerification(
+  jobId: string,
+  names: string[],
+  githubToken?: string
+): Promise<void> {
   try {
-    const body: VerifyRequest = await request.json();
-    const { names } = body;
-
-    if (!names || !Array.isArray(names) || names.length === 0) {
-      return NextResponse.json<VerifyResponse>(
-        { success: false, error: "名字列表不能为空" },
-        { status: 400 }
-      );
-    }
-
-    if (names.length > 20) {
-      return NextResponse.json<VerifyResponse>(
-        { success: false, error: "一次验证最多20个名字" },
-        { status: 400 }
-      );
-    }
-
-    // Get GitHub token for higher rate limit
-    const githubToken = process.env.GITHUB_TOKEN;
-
-    // Run checks in parallel with concurrency limit
     const results: VerificationResult[] = [];
     const batchSize = 5;
 
@@ -193,9 +189,76 @@ export async function POST(request: NextRequest) {
       results.push(...batchResults);
     }
 
+    jobStore.set(jobId, {
+      status: "completed",
+      results,
+    });
+  } catch (error) {
+    console.error("Verification error:", error);
+    jobStore.set(jobId, {
+      status: "failed",
+      error: "验证过程出错",
+    });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: VerifyRequest = await request.json();
+    const { names } = body;
+
+    if (!names || !Array.isArray(names) || names.length === 0) {
+      return NextResponse.json<VerifyResponse>(
+        { success: false, error: "名字列表不能为空" },
+        { status: 400 }
+      );
+    }
+
+    if (names.length > 20) {
+      return NextResponse.json<VerifyResponse>(
+        { success: false, error: "一次验证最多20个名字" },
+        { status: 400 }
+      );
+    }
+
+    const githubToken = process.env.GITHUB_TOKEN;
+    const jobId = generateJobId();
+
+    // For small requests (<=3 names), process synchronously
+    if (names.length <= 3) {
+      const results: VerificationResult[] = [];
+      const batchResults = await Promise.all(
+        names.map(async (name) => {
+          const [githubAvailable, domains] = await Promise.all([
+            checkGithub(name, githubToken),
+            checkAllDomains(name),
+          ]);
+          const scores = calculateScores(name, githubAvailable, domains);
+          return {
+            name,
+            githubAvailable,
+            domains,
+            scores,
+          };
+        })
+      );
+      results.push(...batchResults);
+
+      return NextResponse.json<VerifyResponse>({
+        success: true,
+        data: { results },
+      });
+    }
+
+    // For larger requests, process asynchronously
+    jobStore.set(jobId, { status: "pending" });
+
+    // Start processing in background (non-blocking)
+    processVerification(jobId, names, githubToken);
+
     return NextResponse.json<VerifyResponse>({
       success: true,
-      data: { results },
+      data: { jobId },
     });
   } catch (error) {
     console.error("Verify API error:", error);
@@ -204,4 +267,34 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const jobId = searchParams.get("jobId");
+
+  if (!jobId) {
+    return NextResponse.json(
+      { success: false, error: "缺少 jobId 参数" },
+      { status: 400 }
+    );
+  }
+
+  const job = jobStore.get(jobId);
+
+  if (!job) {
+    return NextResponse.json(
+      { success: false, error: "任务不存在或已过期" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      status: job.status,
+      results: job.results,
+      error: job.error,
+    },
+  });
 }
