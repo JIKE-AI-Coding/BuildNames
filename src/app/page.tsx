@@ -6,7 +6,13 @@ interface NameResult {
   name: string;
   reason?: string;
   githubAvailable?: boolean;
-  domainAvailable?: boolean;
+  domains?: {
+    com: boolean;
+    io: boolean;
+    app: boolean;
+    dev: boolean;
+    ai: boolean;
+  };
   verified?: boolean;
 }
 
@@ -110,7 +116,7 @@ export default function Home() {
             ? {
                 ...nameObj,
                 githubAvailable: result.githubAvailable,
-                domainAvailable: result.domainAvailable,
+                domains: result.domains,
                 verified: true,
               }
             : nameObj;
@@ -336,21 +342,25 @@ export default function Home() {
                             <span className="text-[#EF4444]">✗</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 text-sm">
-                          <span
-                            className={`font-mono text-xs px-1.5 py-0.5 rounded ${
-                              item.domainAvailable
-                                ? "bg-[#ECFDF5] text-[#10B981]"
-                                : "bg-[#FEF2F2] text-[#EF4444]"
-                            }`}
-                          >
-                            .com
-                          </span>
-                          {item.domainAvailable ? (
-                            <span className="text-[#10B981]">✓</span>
-                          ) : (
-                            <span className="text-[#EF4444]">✗</span>
-                          )}
+                        <div className="flex items-center gap-1">
+                          {(["com", "io", "app", "dev", "ai"] as const).map((tld) => (
+                            <div key={tld} className="flex items-center gap-0.5 text-sm">
+                              <span
+                                className={`font-mono text-xs px-1 py-0.5 rounded ${
+                                  item.domains?.[tld]
+                                    ? "bg-[#ECFDF5] text-[#10B981]"
+                                    : "bg-[#FEF2F2] text-[#EF4444]"
+                                }`}
+                              >
+                                .{tld}
+                              </span>
+                              {item.domains?.[tld] ? (
+                                <span className="text-[#10B981]">✓</span>
+                              ) : (
+                                <span className="text-[#EF4444]">✗</span>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </>
                     ) : (

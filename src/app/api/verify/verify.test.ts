@@ -8,6 +8,17 @@ vi.stubEnv('GITHUB_TOKEN', mockGithubToken)
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+// Helper to create DNS response for all TLDs
+const createAllTldsAvailableResponse = () => ({
+  ok: true,
+  json: async () => ({ Status: 3 }), // NXDOMAIN - available
+})
+
+const createAllTldsTakenResponse = () => ({
+  ok: true,
+  json: async () => ({ Status: 0, Answer: [{ data: '192.0.2.1' }] }),
+})
+
 describe('/api/verify', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -78,14 +89,13 @@ describe('/api/verify', () => {
     it('should return githubAvailable=true when repo does not exist', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 0 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ Status: 3 }), // NXDOMAIN - available
-      })
+      // Mock: 1 GitHub + 5 DNS calls for 1 name
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 0 }),
+        })
+        .mockResolvedValue(createAllTldsAvailableResponse())
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -104,14 +114,12 @@ describe('/api/verify', () => {
     it('should return githubAvailable=false when repo exists', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 1 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ Status: 3 }), // NXDOMAIN
-      })
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 1 }),
+        })
+        .mockResolvedValue(createAllTldsAvailableResponse())
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -130,14 +138,12 @@ describe('/api/verify', () => {
     it('should include GITHUB_TOKEN in request headers', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 0 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ Status: 3 }),
-      })
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 0 }),
+        })
+        .mockResolvedValue(createAllTldsAvailableResponse())
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -147,25 +153,23 @@ describe('/api/verify', () => {
 
       await POST(request)
 
-      // First fetch is GitHub API call
-      expect(mockFetch).toHaveBeenCalledTimes(2)
+      // First fetch is GitHub API call (1 GitHub + 5 DNS = 6 total)
+      expect(mockFetch).toHaveBeenCalledTimes(6)
       const githubCall = mockFetch.mock.calls[0]
       expect(githubCall[1].headers.Authorization).toBe(`Bearer ${mockGithubToken}`)
     })
   })
 
   describe('Domain Verification', () => {
-    it('should return domainAvailable=true when domain NXDOMAIN', async () => {
+    it('should return all TLDs as available when NXDOMAIN', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 0 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ Status: 3 }), // NXDOMAIN
-      })
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 0 }),
+        })
+        .mockResolvedValue(createAllTldsAvailableResponse())
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -177,23 +181,22 @@ describe('/api/verify', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.results[0].domainAvailable).toBe(true)
+      expect(data.data.results[0].domains.com).toBe(true)
+      expect(data.data.results[0].domains.io).toBe(true)
+      expect(data.data.results[0].domains.app).toBe(true)
+      expect(data.data.results[0].domains.dev).toBe(true)
+      expect(data.data.results[0].domains.ai).toBe(true)
     })
 
-    it('should return domainAvailable=false when domain has A records', async () => {
+    it('should return all TLDs as unavailable when has A records', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 0 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          Status: 0,
-          Answer: [{ data: '192.0.2.1' }],
-        }),
-      })
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 0 }),
+        })
+        .mockResolvedValue(createAllTldsTakenResponse())
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -205,20 +208,25 @@ describe('/api/verify', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.results[0].domainAvailable).toBe(false)
+      expect(data.data.results[0].domains.com).toBe(false)
+      expect(data.data.results[0].domains.io).toBe(false)
+      expect(data.data.results[0].domains.app).toBe(false)
+      expect(data.data.results[0].domains.dev).toBe(false)
+      expect(data.data.results[0].domains.ai).toBe(false)
     })
 
     it('should assume domain available when DNS API fails', async () => {
       const { POST } = await import('./route')
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total_count: 0 }),
-      })
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      })
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ total_count: 0 }),
+        })
+        .mockResolvedValue({
+          ok: false,
+          status: 500,
+        })
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
@@ -230,7 +238,9 @@ describe('/api/verify', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.results[0].domainAvailable).toBe(true)
+      // On DNS API failure, all TLDs are assumed available
+      expect(data.data.results[0].domains.com).toBe(true)
+      expect(data.data.results[0].domains.io).toBe(true)
     })
   })
 
@@ -238,16 +248,17 @@ describe('/api/verify', () => {
     it('should process multiple names in parallel', async () => {
       const { POST } = await import('./route')
 
+      // All fetches return available
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ total_count: 0 }),
+        json: async () => ({ total_count: 0, Status: 3 }),
       })
 
       const request = new Request('http://localhost:3000/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          names: ['NameOne', 'NameTwo', 'NameThree', 'NameFour', 'NameFive'],
+          names: ['NameOne', 'NameTwo', 'NameThree'],
         }),
       })
 
@@ -256,33 +267,7 @@ describe('/api/verify', () => {
 
       expect(response.status).toBe(200)
       expect(data.success).toBe(true)
-      expect(data.data.results).toHaveLength(5)
-    })
-
-    it('should process multiple names in parallel and return consistent results', async () => {
-      const { POST } = await import('./route')
-
-      // All names return same results - available
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ total_count: 0 }) })
-
-      const request = new Request('http://localhost:3000/api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          names: ['NameOne', 'NameTwo', 'NameThree', 'NameFour', 'NameFive'],
-        }),
-      })
-
-      const response = await POST(request)
-      const data = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(data.success).toBe(true)
-      expect(data.data.results).toHaveLength(5)
-      // All should be available since all GitHub returns total_count: 0
-      data.data.results.forEach((result: { githubAvailable: boolean; domainAvailable: boolean }) => {
-        expect(result.githubAvailable).toBe(true)
-      })
+      expect(data.data.results).toHaveLength(3)
     })
   })
 

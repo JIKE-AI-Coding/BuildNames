@@ -7,7 +7,13 @@ export interface VerifyRequest {
 export interface VerificationResult {
   name: string;
   githubAvailable: boolean;
-  domainAvailable: boolean;
+  domains: {
+    com: boolean;
+    io: boolean;
+    app: boolean;
+    dev: boolean;
+    ai: boolean;
+  };
 }
 
 export interface VerifyResponse {
@@ -44,10 +50,9 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
   }
 }
 
-async function checkDomain(name: string): Promise<boolean> {
+async function checkDomain(name: string, tld: string): Promise<boolean> {
   try {
-    // Using Cloudflare DNS-over-HTTPS API
-    const domain = `${name.toLowerCase()}.com`;
+    const domain = `${name.toLowerCase()}.${tld}`;
     const url = `https://cloudflare-dns.com/dns-query?type=A&name=${encodeURIComponent(domain)}`;
 
     const response = await fetch(url, {
@@ -57,30 +62,49 @@ async function checkDomain(name: string): Promise<boolean> {
     });
 
     if (!response.ok) {
-      // If API fails, assume domain might be available
       return true;
     }
 
     const data = await response.json();
 
-    // NXDOMAIN means domain is available (Status: 3 or no A records)
-    // If Status is not 3 and there are answers, domain is taken
     if (data.Status === 3) {
-      return true; // NXDOMAIN - available
+      return true;
     }
 
     if (data.Answer && data.Answer.length > 0) {
-      // Has A records - domain is taken
       return false;
     }
 
-    // Fallback - assume available
     return true;
   } catch (error) {
     console.error("Domain check error:", error);
-    // On error, be optimistic and say it's available
     return true;
   }
+}
+
+async function checkAllDomains(name: string): Promise<VerificationResult["domains"]> {
+  const tlds = ["com", "io", "app", "dev", "ai"] as const;
+
+  const results = await Promise.all(
+    tlds.map(async (tld) => {
+      const available = await checkDomain(name, tld);
+      return { tld, available };
+    })
+  );
+
+  const domains: VerificationResult["domains"] = {
+    com: false,
+    io: false,
+    app: false,
+    dev: false,
+    ai: false,
+  };
+
+  results.forEach(({ tld, available }) => {
+    domains[tld] = available;
+  });
+
+  return domains;
 }
 
 export async function POST(request: NextRequest) {
@@ -113,14 +137,14 @@ export async function POST(request: NextRequest) {
       const batch = names.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map(async (name) => {
-          const [githubAvailable, domainAvailable] = await Promise.all([
+          const [githubAvailable, domains] = await Promise.all([
             checkGithub(name, githubToken),
-            checkDomain(name),
+            checkAllDomains(name),
           ]);
           return {
             name,
             githubAvailable,
-            domainAvailable,
+            domains,
           };
         })
       );
