@@ -140,7 +140,7 @@ export default function Home() {
         {/* Header */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold tracking-tight text-[#111827] mb-2">
-            searchnames
+            BuildNames
           </h1>
           <p className="text-[#6B7280] text-base">
             AI 产品名生成与验证工具

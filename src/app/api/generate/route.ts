@@ -103,7 +103,6 @@ FlowState:表达专注工作状态的概念
         ],
         max_tokens: 500,
         temperature: 1.0,
-        seed: Math.floor(Math.random() * 2147483647),
       }),
     });
 
