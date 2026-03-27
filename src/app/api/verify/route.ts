@@ -55,7 +55,12 @@ function generateJobId(): string {
 
 async function checkGithub(name: string, token?: string): Promise<boolean> {
   try {
-    const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(name)}+in:name&per_page=1`;
+    // 精准匹配仓库名
+    const searchQuery = `name:${name}`;
+    const url = new URL("https://api.github.com/search/repositories");
+    url.searchParams.append("q", searchQuery);
+    url.searchParams.append("per_page", "3");
+
     const headers: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
     };
@@ -63,18 +68,29 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url.toString(), { headers });
 
     if (!response.ok) {
-      console.error("GitHub API error:", response.status);
-      return false;
+      console.log(`[GitHub API] name=${name}, status=${response.status}, ok=false`);
+      // API 异常时默认允许使用
+      return true;
     }
 
     const data = await response.json();
-    return data.total_count === 0;
+    console.log(`[GitHub API] name=${name}, rawResponse=`, data);
+
+    const repoItems = data.items || [];
+    // 精准判断：是否存在完全同名仓库（忽略大小写）
+    const hasDuplicate = repoItems.some(
+      (item: any) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    // 无重名 → 可用
+    return !hasDuplicate;
   } catch (error) {
     console.error("GitHub check error:", error);
-    return false;
+    // 异常不阻塞业务，默认允许
+    return true;
   }
 }
 
@@ -131,19 +147,37 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
   return domains;
 }
 
-function calculateDomainScore(domains: VerificationResult["domains"]): number {
-  // Only count domains that are confirmed available (not null/unknown)
-  if (domains.com === true) return 1.0;
-  if (domains.cn === true) return 0.8;
-  // If all domains are unknown or unavailable, return 0
-  return 0;
-}
+/**
+ * 计算名称推荐星级
+ * 5星：GitHub可用 + .com可用
+ * 4星：GitHub可用 + .cn可用（.com不可用），或 .com可用但GitHub占用
+ * 3星：.com或.cn可用，GitHub占用
+ * 2星：只有GitHub可用，无域名
+ * 1星：GitHub占用，无域名
+ */
+function calculateStarCount(
+  githubAvailable: boolean,
+  domains: VerificationResult["domains"]
+): number {
+  const comAvailable = domains.com === true;
+  const cnAvailable = domains.cn === true;
 
-function calculateLengthBonus(name: string): number {
-  const len = name.length;
-  if (len >= 2 && len <= 6) return 0.2;
-  if (len >= 7 && len <= 10) return 0.1;
-  return 0;
+  if (githubAvailable && comAvailable) {
+    return 5; // 满分
+  }
+  if (githubAvailable && cnAvailable && !comAvailable) {
+    return 4; // GitHub可用 + cn可用
+  }
+  if (githubAvailable && !comAvailable && !cnAvailable) {
+    return 3; // 只有GitHub可用
+  }
+  if (!githubAvailable && comAvailable) {
+    return 4; // .com可用但GitHub占用
+  }
+  if (!githubAvailable && cnAvailable && !comAvailable) {
+    return 3; // .cn可用但GitHub占用
+  }
+  return 1; // GitHub占用，无好域名
 }
 
 function calculateScores(
@@ -151,16 +185,17 @@ function calculateScores(
   githubAvailable: boolean,
   domains: VerificationResult["domains"]
 ): VerificationResult["scores"] {
+  const starCount = calculateStarCount(githubAvailable, domains);
+
+  // 为了兼容性保留分数，但改为基于星级的固定分值
   const githubScore = githubAvailable ? 1.0 : 0;
-  const domainScore = calculateDomainScore(domains);
-  const lengthBonus = calculateLengthBonus(name);
-  const totalScore = githubScore + domainScore + lengthBonus;
+  const domainScore = domains.com === true ? 1.0 : domains.cn === true ? 0.8 : 0;
 
   return {
     githubScore,
     domainScore,
-    lengthBonus,
-    totalScore: Math.round(totalScore * 100) / 100,
+    lengthBonus: 0, // 简化：不再使用长度奖励
+    totalScore: starCount, // 直接使用星级作为总分
   };
 }
 

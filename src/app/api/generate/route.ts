@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export interface GenerateRequest {
   productIdea: string;
-  targetUsers: string;
+  targetUsers: string | string[];
   productPositioning: string;
+  excludeNames?: string[];
 }
 
 export interface GenerateResponse {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
 
-    const { productIdea, targetUsers, productPositioning } = body;
+    const { productIdea, targetUsers, productPositioning, excludeNames } = body;
 
     // Validate inputs
     if (!productIdea?.trim()) {
@@ -28,12 +29,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!targetUsers?.trim()) {
+    if (!targetUsers || (Array.isArray(targetUsers) && targetUsers.length === 0)) {
       return NextResponse.json<GenerateResponse>(
         { success: false, error: "目标用户不能为空" },
         { status: 400 }
       );
     }
+
+    // Convert targetUsers to display string
+    const targetUsersStr = Array.isArray(targetUsers) ? targetUsers.join("、") : targetUsers;
 
     if (!productPositioning?.trim()) {
       return NextResponse.json<GenerateResponse>(
@@ -61,12 +65,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prompt = `你是一个专业的品牌命名顾问。请根据以下信息生成10个独特、易记、适合的产品名称。
+    let prompt = `你是一个专业的品牌命名顾问。请根据以下信息生成10个独特、易记、适合的产品名称。
 
 产品想法：${productIdea}
-目标用户：${targetUsers}
-产品定位：${productPositioning}
+目标用户：${targetUsersStr}
+产品定位：${productPositioning}`;
 
+    // Add exclusion instruction if there are previously generated names
+    if (excludeNames && excludeNames.length > 0) {
+      prompt += `\n\n重要：请不要生成以下名字（这些已经被使用）：${excludeNames.join("、")}`;
+    }
+
+    prompt += `
 要求：
 1. 名称应该简短（2-12个字符）
 2. 易于发音和记忆
@@ -131,7 +141,7 @@ FlowState:表达专注工作状态的概念
       .map((line: string) => line.trim())
       .filter((line: string) => line.length > 0)
 
-    const names = lines.slice(0, 10).map((line: string) => {
+    const parsedNames = lines.slice(0, 10).map((line: string) => {
       const colonIndex = line.indexOf(":");
       if (colonIndex > 0) {
         return {
@@ -142,6 +152,10 @@ FlowState:表达专注工作状态的概念
       // Fallback: if no colon found, treat whole line as name with empty reason
       return { name: line, reason: "" };
     });
+
+    // Server-side deduplication: filter out names that are in excludeNames
+    const excludeSet = new Set(excludeNames || []);
+    const names = parsedNames.filter((n: { name: string; reason: string }) => !excludeSet.has(n.name));
 
     if (names.length === 0) {
       return NextResponse.json<GenerateResponse>(
