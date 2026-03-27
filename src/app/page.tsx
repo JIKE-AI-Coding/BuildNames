@@ -34,6 +34,47 @@ export default function Home() {
   const [isVerifying, setIsVerifying] = useState<VerifyStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [copiedName, setCopiedName] = useState<string | null>(null);
+  const [retryingDomains, setRetryingDomains] = useState<Set<string>>(new Set()); // track "name:tld"
+
+  const handleRetryDomain = useCallback(async (name: string, tld: string) => {
+    const key = `${name}:${tld}`;
+    setRetryingDomains((prev) => new Set(prev).add(key));
+
+    try {
+      const response = await fetch("/api/verify/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, tld }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data.available !== null) {
+        setNames((prevNames) =>
+          prevNames.map((item) => {
+            if (item.name === name && item.domains) {
+              return {
+                ...item,
+                domains: {
+                  ...item.domains,
+                  [tld]: data.data.available,
+                },
+              };
+            }
+            return item;
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Retry domain error:", err);
+    } finally {
+      setRetryingDomains((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     setError(null);
@@ -407,6 +448,8 @@ export default function Home() {
                         <div className="flex items-center gap-1">
                           {(["com", "cn"] as const).map((tld) => {
                             const status = item.domains?.[tld];
+                            const retryKey = `${item.name}:${tld}`;
+                            const isRetrying = retryingDomains.has(retryKey);
                             return (
                               <div key={tld} className="flex items-center gap-0.5 text-sm">
                                 <span
@@ -425,7 +468,23 @@ export default function Home() {
                                 ) : status === false ? (
                                   <span className="text-[#EF4444]">✗</span>
                                 ) : (
-                                  <span className="text-[#9CA3AF]">?</span>
+                                  <button
+                                    onClick={() => handleRetryDomain(item.name, tld)}
+                                    disabled={isRetrying}
+                                    className="text-[#9CA3AF] hover:text-[#2563EB] disabled:cursor-wait"
+                                    title="重试验证"
+                                  >
+                                    {isRetrying ? (
+                                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                      </svg>
+                                    ) : (
+                                      <svg className="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      </svg>
+                                    )}
+                                  </button>
                                 )}
                               </div>
                             );

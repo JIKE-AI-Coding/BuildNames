@@ -81,7 +81,7 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
 async function checkDomain(name: string, tld: string): Promise<boolean | null> {
   try {
     const domain = `${name.toLowerCase()}.${tld}`;
-    const url = `https://api.whoiscx.com/whois/?domain=${encodeURIComponent(domain)}`;
+    const url = `http://api.whoiscx.com/whois/?domain=${encodeURIComponent(domain)}`;
 
     // Rate limit: 1 request per 2 seconds for WhoisCX API
     await new Promise((resolve) => setTimeout(resolve, rateLimitDelay));
