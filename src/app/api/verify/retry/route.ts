@@ -12,14 +12,14 @@ async function checkDomain(name: string, tld: string): Promise<boolean | null> {
     await new Promise((resolve) => setTimeout(resolve, rateLimitDelay));
 
     const response = await fetch(url);
-    const rawData = await response.json();
-    console.log(`[WhoisCX API] domain=${domain}, rawResponse=`, rawData);
 
     if (!response.ok) {
+      console.log(`[WhoisCX API] domain=${domain}, status=${response.status}, ok=false`);
       return null;
     }
 
     const data = await response.json();
+    console.log(`[WhoisCX API] domain=${domain}, rawResponse=`, data);
 
     if (data.status === 1) {
       return data.is_available === 1;
