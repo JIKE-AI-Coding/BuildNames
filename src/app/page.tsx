@@ -76,6 +76,60 @@ export default function Home() {
     }
   }, []);
 
+  const handleRetryAll = useCallback(async () => {
+    // Collect all null domains from all names
+    const toRetry: { name: string; tld: string }[] = [];
+    names.forEach((item) => {
+      if (item.domains) {
+        (["com", "cn"] as const).forEach((tld) => {
+          if (item.domains?.[tld] === null) {
+            toRetry.push({ name: item.name, tld });
+          }
+        });
+      }
+    });
+
+    if (toRetry.length === 0) return;
+
+    // Mark all as retrying
+    const keysToRetry = new Set(toRetry.map((r) => `${r.name}:${r.tld}`));
+    setRetryingDomains(keysToRetry);
+
+    try {
+      // Retry all in parallel
+      await Promise.all(
+        toRetry.map(async ({ name, tld }) => {
+          const response = await fetch("/api/verify/retry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, tld }),
+          });
+          const data = await response.json();
+          if (data.success && data.data.available !== null) {
+            setNames((prevNames) =>
+              prevNames.map((item) => {
+                if (item.name === name && item.domains) {
+                  return {
+                    ...item,
+                    domains: {
+                      ...item.domains,
+                      [tld]: data.data.available,
+                    },
+                  };
+                }
+                return item;
+              })
+            );
+          }
+        })
+      );
+    } catch (err) {
+      console.error("Retry all error:", err);
+    } finally {
+      setRetryingDomains(new Set());
+    }
+  }, [names]);
+
   const handleGenerate = useCallback(async () => {
     setError(null);
 
@@ -394,6 +448,61 @@ export default function Home() {
                   </svg>
                   验证中...
                 </span>
+              )}
+              {names.some(
+                (item) =>
+                  item.domains &&
+                  (item.domains.com === null || item.domains.cn === null)
+              ) && (
+                <button
+                  onClick={handleRetryAll}
+                  disabled={retryingDomains.size > 0}
+                  className="mt-3 px-3 py-1.5 text-sm bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] rounded-md flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {retryingDomains.size > 0 ? (
+                    <>
+                      <svg
+                        className="animate-spin h-3.5 w-3.5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      重试中...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-3.5 w-3.5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      重试全部未知域名
+                    </>
+                  )}
+                </button>
               )}
             </div>
 
