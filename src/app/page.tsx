@@ -129,7 +129,7 @@ export default function Home() {
   };
 
   const pollForResults = async (jobId: string, namesToVerify: string[]) => {
-    const maxAttempts = 20;
+    const maxAttempts = 150; // ~150s timeout for rate-limited domain checks
     const intervalMs = 1000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -163,7 +163,7 @@ export default function Home() {
       }
     }
 
-    setError("验证超时，请重试");
+    setError("验证超时（域名API限速），请稍后重试");
     setIsVerifying("idle");
   };
 
