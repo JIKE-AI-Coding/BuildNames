@@ -180,6 +180,7 @@ async function processVerification(
             checkAllDomains(name),
           ]);
           const scores = calculateScores(name, githubAvailable, domains);
+          console.log(`[DomainVerify] name=${name}, domains=${JSON.stringify(domains)}`);
           return {
             name,
             githubAvailable,

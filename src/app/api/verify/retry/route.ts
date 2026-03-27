@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
 
     const available = await checkDomain(name, tld);
 
+    console.log(`[DomainVerify] name=${name}, tld=${tld}, available=${available}`);
+
     return NextResponse.json({
       success: true,
       data: { name, tld, available },
