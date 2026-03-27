@@ -8,12 +8,12 @@ export interface VerificationResult {
   name: string;
   githubAvailable: boolean;
   domains: {
-    com: boolean;
-    cn: boolean;
-    io: boolean;
-    app: boolean;
-    dev: boolean;
-    ai: boolean;
+    com: boolean | null;  // null = unknown (API failed)
+    cn: boolean | null;
+    io: boolean | null;
+    app: boolean | null;
+    dev: boolean | null;
+    ai: boolean | null;
   };
   scores?: {
     githubScore: number;
@@ -78,7 +78,7 @@ async function checkGithub(name: string, token?: string): Promise<boolean> {
   }
 }
 
-async function checkDomain(name: string, tld: string): Promise<boolean> {
+async function checkDomain(name: string, tld: string): Promise<boolean | null> {
   try {
     const domain = `${name.toLowerCase()}.${tld}`;
     const url = `https://api.whoiscx.com/whois/?domain=${encodeURIComponent(domain)}`;
@@ -89,8 +89,8 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
     const response = await fetch(url);
 
     if (!response.ok) {
-      // If API request fails, return false (don't assume available)
-      return false;
+      // If API request fails, return null (unknown)
+      return null;
     }
 
     const data = await response.json();
@@ -100,11 +100,11 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
       return data.is_available === 1;
     }
 
-    // If API returns non-success status, return false (don't assume available)
-    return false;
+    // If API returns non-success status, return null (unknown)
+    return null;
   } catch {
-    // On error, return false (don't assume available)
-    return false;
+    // On error, return null (unknown)
+    return null;
   }
 }
 
@@ -112,26 +112,28 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
   const tlds = ["com", "cn"] as const;
 
   // Sequential check to respect rate limit (1 req/2s)
-  const domains = {
-    com: false,
-    cn: false,
-    io: false,
-    app: false,
-    dev: false,
-    ai: false,
-  } as VerificationResult["domains"];
+  const domains: VerificationResult["domains"] = {
+    com: null,
+    cn: null,
+    io: null,
+    app: null,
+    dev: null,
+    ai: null,
+  };
 
   for (const tld of tlds) {
     const available = await checkDomain(name, tld);
-    (domains as Record<string, boolean>)[tld] = available;
+    (domains as Record<string, boolean | null>)[tld] = available;
   }
 
   return domains;
 }
 
 function calculateDomainScore(domains: VerificationResult["domains"]): number {
-  if (domains.com) return 1.0;
-  if (domains.cn) return 0.8;
+  // Only count domains that are confirmed available (not null/unknown)
+  if (domains.com === true) return 1.0;
+  if (domains.cn === true) return 0.8;
+  // If all domains are unknown or unavailable, return 0
   return 0;
 }
 

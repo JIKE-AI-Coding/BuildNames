@@ -7,12 +7,12 @@ interface NameResult {
   reason?: string;
   githubAvailable?: boolean;
   domains?: {
-    com: boolean;
-    cn: boolean;
-    io: boolean;
-    app: boolean;
-    dev: boolean;
-    ai: boolean;
+    com: boolean | null;
+    cn: boolean | null;
+    io: boolean | null;
+    app: boolean | null;
+    dev: boolean | null;
+    ai: boolean | null;
   };
   scores?: {
     githubScore: number;
@@ -168,7 +168,7 @@ export default function Home() {
     setIsVerifying("idle");
   };
 
-  const mergeResults = (results: { name: string; githubAvailable: boolean; domains: { com: boolean; cn: boolean; io: boolean; app: boolean; dev: boolean; ai: boolean }; scores?: { githubScore: number; domainScore: number; lengthBonus: number; totalScore: number } }[]) => {
+  const mergeResults = (results: { name: string; githubAvailable: boolean; domains: { com: boolean | null; cn: boolean | null; io: boolean | null; app: boolean | null; dev: boolean | null; ai: boolean | null }; scores?: { githubScore: number; domainScore: number; lengthBonus: number; totalScore: number } }[]) => {
     setNames((prevNames) =>
       prevNames.map((nameObj) => {
         const result = results.find((r) => r.name === nameObj.name);
@@ -405,24 +405,31 @@ export default function Home() {
                           )}
                         </div>
                         <div className="flex items-center gap-1">
-                          {(["com", "cn"] as const).map((tld) => (
-                            <div key={tld} className="flex items-center gap-0.5 text-sm">
-                              <span
-                                className={`font-mono text-xs px-1 py-0.5 rounded ${
-                                  item.domains?.[tld]
-                                    ? "bg-[#ECFDF5] text-[#10B981]"
-                                    : "bg-[#FEF2F2] text-[#EF4444]"
-                                }`}
-                              >
-                                .{tld}
-                              </span>
-                              {item.domains?.[tld] ? (
-                                <span className="text-[#10B981]">✓</span>
-                              ) : (
-                                <span className="text-[#EF4444]">✗</span>
-                              )}
-                            </div>
-                          ))}
+                          {(["com", "cn"] as const).map((tld) => {
+                            const status = item.domains?.[tld];
+                            return (
+                              <div key={tld} className="flex items-center gap-0.5 text-sm">
+                                <span
+                                  className={`font-mono text-xs px-1 py-0.5 rounded ${
+                                    status === true
+                                      ? "bg-[#ECFDF5] text-[#10B981]"
+                                      : status === false
+                                        ? "bg-[#FEF2F2] text-[#EF4444]"
+                                        : "bg-[#F3F4F6] text-[#9CA3AF]"
+                                  }`}
+                                >
+                                  .{tld}
+                                </span>
+                                {status === true ? (
+                                  <span className="text-[#10B981]">✓</span>
+                                ) : status === false ? (
+                                  <span className="text-[#EF4444]">✗</span>
+                                ) : (
+                                  <span className="text-[#9CA3AF]">?</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
