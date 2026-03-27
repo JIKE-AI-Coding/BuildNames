@@ -403,9 +403,12 @@ export default function Home() {
       {/* Header - Full Width */}
       <div className="border-b border-[#E5E7EB]">
         <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
-            BuildNames
-          </h1>
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
+              BuildNames <span className="text-[#6B7280] font-normal">起名</span>
+            </h1>
+            <p className="text-sm text-[#9CA3AF]">AI 驱动的产品名称生成与可用性验证</p>
+          </div>
           <button
             onClick={() => setShowHistoryPanel(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#111827] hover:bg-[#F9FAFB] rounded-md transition-colors"

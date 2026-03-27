@@ -65,11 +65,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let prompt = `你是一个专业的品牌命名顾问。请根据以下信息生成10个独特、易记、适合的产品名称。
+    const systemPrompt = `你是一位世界顶级的品牌命名专家，精通语言学、营销学和域名策略。
+你的专长是创造令人难忘、与产品本质深度契合的名字。
+你生成的名字必须：
+1. 精准捕捉产品的核心价值和使用场景
+2. 在众多竞争名字中脱颖而出，避免平庸
+3. 简短有力，2-12个字符，易读易记
+4. 域名友好（.com/.io/.ai 可用）
+5. 无连字符、无数字、纯字母组合`;
+
+    let prompt = `请根据以下产品信息，生成10个令人惊艳的产品名称。
 
 产品想法：${productIdea}
 目标用户：${targetUsersStr}
-产品定位：${productPositioning}`;
+产品定位：${productPositioning}
+
+重要指导：
+1. 名字必须精准体现产品想法中最独特的点
+2. 名字要与"${productPositioning}"的关键词有强关联
+3. 英文名要能够体现产品价值或核心特点，避免平庸的通用词
+4. 中文名简洁有力，与英文名形成呼应
+5. 优先选择在 .com/.io/.ai 域名上可用的名字
+6. 禁止使用连字符、数字或下划线`;
 
     // Add exclusion instruction if there are previously generated names
     if (excludeNames && excludeNames.length > 0) {
@@ -77,18 +94,12 @@ export async function POST(request: NextRequest) {
     }
 
     prompt += `
-要求：
-1. 每个名字包含英文名（2-12字符，用于GitHub和域名）和中文名（2-6字符，品牌中文名）
-2. 英文名易于发音和记忆，能够体现产品价值或特点
-3. 中文名简洁有力，与英文名呼应
-4. 在 GitHub 和主流域名（如 .com）上可用
-5. 避免使用连字符或数字
 
 请按以下格式返回10个名字（用英文冒号分隔）：
 英文名:中文名:理由
 示例：
-TimeKeeper:时 Keeper:简洁有力，突出时间管理的核心功能
-FlowState:流态:表达专注工作状态的概念
+Pomodoro:番茄芯:直接关联番茄钟核心概念，简洁有力
+FocusFlow:专注流:表达程序员沉浸式工作状态
 
 请直接返回10行，不要包含序号或其他内容。`;
 
@@ -103,16 +114,15 @@ FlowState:流态:表达专注工作状态的概念
         messages: [
           {
             role: "system",
-            content:
-              "你是一个专业的品牌命名顾问，只返回产品名称列表。",
+            content: systemPrompt,
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        max_tokens: 500,
-        temperature: 1.0,
+        max_tokens: 800,
+        temperature: 0.85,
       }),
     });
 
