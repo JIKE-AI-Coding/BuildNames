@@ -12,6 +12,8 @@ async function checkDomain(name: string, tld: string): Promise<boolean | null> {
     await new Promise((resolve) => setTimeout(resolve, rateLimitDelay));
 
     const response = await fetch(url);
+    const rawData = await response.json();
+    console.log(`[WhoisCX API] domain=${domain}, rawResponse=`, rawData);
 
     if (!response.ok) {
       return null;
@@ -24,7 +26,8 @@ async function checkDomain(name: string, tld: string): Promise<boolean | null> {
     }
 
     return null;
-  } catch {
+  } catch (e) {
+    console.error(`[WhoisCX API] domain=${name}.${tld}, error=`, e);
     return null;
   }
 }
