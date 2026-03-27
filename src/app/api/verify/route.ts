@@ -42,6 +42,12 @@ const jobStore = new Map<
   }
 >();
 
+// Rate limit delay function - can be overridden in tests
+let rateLimitDelay = 2100;
+export function setRateLimitDelay(ms: number) {
+  rateLimitDelay = ms;
+}
+
 function generateJobId(): string {
   return `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
@@ -76,6 +82,9 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
     const domain = `${name.toLowerCase()}.${tld}`;
     const url = `https://api.whoiscx.com/whois/?domain=${encodeURIComponent(domain)}`;
 
+    // Rate limit: 1 request per 2 seconds for WhoisCX API
+    await new Promise((resolve) => setTimeout(resolve, rateLimitDelay));
+
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -91,22 +100,17 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
 
     // If API returns error status, assume available (optimistic)
     return true;
-  } catch (error) {
-    console.error("Domain check error:", error);
+  } catch {
+    // On error, optimistically assume available
     return true;
   }
 }
 
 async function checkAllDomains(name: string): Promise<VerificationResult["domains"]> {
   const tlds = ["com", "io", "app", "dev", "ai"] as const;
+  type Tld = (typeof tlds)[number];
 
-  const results = await Promise.all(
-    tlds.map(async (tld) => {
-      const available = await checkDomain(name, tld);
-      return { tld, available };
-    })
-  );
-
+  // Sequential check to respect rate limit (1 req/2s)
   const domains: VerificationResult["domains"] = {
     com: false,
     io: false,
@@ -115,9 +119,10 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
     ai: false,
   };
 
-  results.forEach(({ tld, available }) => {
-    domains[tld] = available;
-  });
+  for (const tld of tlds) {
+    const available = await checkDomain(name, tld);
+    domains[tld as Tld] = available;
+  }
 
   return domains;
 }
