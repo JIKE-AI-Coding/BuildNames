@@ -97,8 +97,9 @@ async function checkDomain(name: string, tld: string): Promise<boolean | null> {
     console.log(`[WhoisCX API] domain=${domain}, rawResponse=`, data);
 
     // is_available: 1 = available, 0 = registered
-    if (data.status === 1) {
-      return data.is_available === 1;
+    // Note: WhoisCX returns { status: 1, data: { is_available: 1, ... } }
+    if (data.status === 1 && data.data) {
+      return data.data.is_available === 1;
     }
 
     // If API returns non-success status, return null (unknown)
