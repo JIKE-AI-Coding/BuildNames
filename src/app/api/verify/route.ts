@@ -89,7 +89,8 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
     const response = await fetch(url);
 
     if (!response.ok) {
-      return true;
+      // If API request fails, return false (don't assume available)
+      return false;
     }
 
     const data = await response.json();
@@ -99,11 +100,11 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
       return data.is_available === 1;
     }
 
-    // If API returns error status, assume available (optimistic)
-    return true;
+    // If API returns non-success status, return false (don't assume available)
+    return false;
   } catch {
-    // On error, optimistically assume available
-    return true;
+    // On error, return false (don't assume available)
+    return false;
   }
 }
 

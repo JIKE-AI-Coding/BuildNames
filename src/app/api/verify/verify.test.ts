@@ -233,9 +233,9 @@ describe('/api/verify', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      // On DNS API failure, all TLDs are assumed available
-      expect(data.data.results[0].domains.com).toBe(true)
-      expect(data.data.results[0].domains.cn).toBe(true)
+      // On DNS API failure, all TLDs are assumed unavailable
+      expect(data.data.results[0].domains.com).toBe(false)
+      expect(data.data.results[0].domains.cn).toBe(false)
     })
   })
 
