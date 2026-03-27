@@ -6,6 +6,7 @@ import HistoryPanel from "@/components/HistoryPanel";
 
 interface NameResult {
   name: string;
+  chineseName?: string;
   reason?: string;
   githubAvailable?: boolean;
   domains?: {
@@ -272,8 +273,9 @@ export default function Home() {
       }
 
       const newNames = data.data.names.map(
-        (item: { name: string; reason: string }) => ({
+        (item: { name: string; chineseName: string; reason: string }) => ({
           name: item.name,
+          chineseName: item.chineseName,
           reason: item.reason,
           verified: false,
         })
@@ -717,10 +719,19 @@ export default function Home() {
                           <button
                             onClick={() => handleCopy(item.name)}
                             className="text-[#111827] font-semibold text-lg hover:text-[#2563EB] transition-colors cursor-pointer"
-                            title="点击复制"
+                            title="点击复制英文名"
                           >
                             {item.name}
                           </button>
+                          {item.chineseName && (
+                            <button
+                              onClick={() => handleCopy(item.chineseName)}
+                              className="text-[#6B7280] text-lg hover:text-[#2563EB] transition-colors cursor-pointer"
+                              title="点击复制中文名"
+                            >
+                              ({item.chineseName})
+                            </button>
+                          )}
                           {copiedName === item.name && (
                             <span className="text-sm text-[#10B981] font-medium animate-pulse">
                               已复制

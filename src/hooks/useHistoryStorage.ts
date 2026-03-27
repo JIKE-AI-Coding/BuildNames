@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 export interface NameVerificationResult {
   name: string;
+  chineseName?: string;
   reason?: string;
   githubAvailable?: boolean;
   domains?: {

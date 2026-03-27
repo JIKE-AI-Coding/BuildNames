@@ -200,6 +200,11 @@ export default function HistoryPanel({
                               className="inline-flex items-center px-2 py-0.5 bg-white border border-[#E5E7EB] rounded text-xs text-[#111827]"
                             >
                               {name.name}
+                              {name.chineseName && (
+                                <span className="text-[#6B7280] ml-0.5">
+                                  ({name.chineseName})
+                                </span>
+                              )}
                               {name.verified && name.scores && (
                                 <span className="ml-1 text-[#F59E0B]">
                                   {"★".repeat(Math.round(name.scores.totalScore))}

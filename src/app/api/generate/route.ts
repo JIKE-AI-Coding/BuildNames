@@ -10,7 +10,7 @@ export interface GenerateRequest {
 export interface GenerateResponse {
   success: boolean;
   data?: {
-    names: { name: string; reason: string }[];
+    names: { name: string; chineseName: string; reason: string }[];
   };
   error?: string;
 }
@@ -78,17 +78,17 @@ export async function POST(request: NextRequest) {
 
     prompt += `
 要求：
-1. 名称应该简短（2-12个字符）
-2. 易于发音和记忆
-3. 能够体现产品价值或特点
+1. 每个名字包含英文名（2-12字符，用于GitHub和域名）和中文名（2-6字符，品牌中文名）
+2. 英文名易于发音和记忆，能够体现产品价值或特点
+3. 中文名简洁有力，与英文名呼应
 4. 在 GitHub 和主流域名（如 .com）上可用
 5. 避免使用连字符或数字
 
-请按以下格式返回10个名称和理由（用英文冒号分隔）：
-名称:理由
+请按以下格式返回10个名字（用英文冒号分隔）：
+英文名:中文名:理由
 示例：
-TimeKeeper:简洁有力，突出时间管理的核心功能
-FlowState:表达专注工作状态的概念
+TimeKeeper:时 Keeper:简洁有力，突出时间管理的核心功能
+FlowState:流态:表达专注工作状态的概念
 
 请直接返回10行，不要包含序号或其他内容。`;
 
@@ -142,15 +142,24 @@ FlowState:表达专注工作状态的概念
       .filter((line: string) => line.length > 0)
 
     const parsedNames = lines.slice(0, 10).map((line: string) => {
-      const colonIndex = line.indexOf(":");
-      if (colonIndex > 0) {
+      // Format: 英文名:中文名:理由
+      const parts = line.split(":");
+      if (parts.length >= 3) {
         return {
-          name: line.slice(0, colonIndex).trim(),
-          reason: line.slice(colonIndex + 1).trim(),
+          name: parts[0].trim(),
+          chineseName: parts[1].trim(),
+          reason: parts.slice(2).join(":").trim(),
+        };
+      } else if (parts.length === 2) {
+        // Fallback: English name and reason (no Chinese name)
+        return {
+          name: parts[0].trim(),
+          chineseName: "",
+          reason: parts[1].trim(),
         };
       }
       // Fallback: if no colon found, treat whole line as name with empty reason
-      return { name: line, reason: "" };
+      return { name: line, reason: "", chineseName: "" };
     });
 
     // Server-side deduplication: filter out names that are in excludeNames
