@@ -31,7 +31,7 @@ export interface HistorySession {
   generatedNames: NameVerificationResult[];
 }
 
-const STORAGE_KEY = "buildnames_history";
+const STORAGE_KEY = "BuildGoodName_history";
 const MAX_SESSIONS = 50;
 
 export function useHistoryStorage() {

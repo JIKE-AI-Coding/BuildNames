@@ -1,4 +1,4 @@
-# Design System — BuildNames
+# Design System — BuildGoodName
 
 ## Product Context
 - **What this is:** AI 产品名生成与验证工具 — 输入产品想法，AI 生成 10 个名字，每个名字验证 GitHub 和 5 个 TLD 域名可用性

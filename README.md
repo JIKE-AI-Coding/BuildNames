@@ -1,4 +1,4 @@
-# BuildNames
+# BuildGoodName
 
 AI 产品名生成与验证工具。输入产品想法，AI 生成 10 个好名字，自动验证 GitHub 和域名可用性。
 

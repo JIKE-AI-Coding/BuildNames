@@ -405,7 +405,7 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-6 flex items-center justify-between">
           <div className="flex flex-col">
             <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
-              BuildNames <span className="text-[#6B7280] font-normal">起名</span>
+              BuildGoodName <span className="text-[#6B7280] font-normal">起好名</span>
             </h1>
             <p className="text-sm text-[#9CA3AF]">AI 驱动的产品名称生成与可用性验证</p>
           </div>

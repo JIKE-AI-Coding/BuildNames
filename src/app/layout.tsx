@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BuildNames — AI 产品名生成与验证工具",
+  title: "BuildGoodName — AI 产品名生成与验证工具",
   description: "输入产品想法，AI 生成10个好名字，自动验证 GitHub 和域名可用性",
 };
 
