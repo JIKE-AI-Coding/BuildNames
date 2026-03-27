@@ -8,6 +8,7 @@ interface NameResult {
   githubAvailable?: boolean;
   domains?: {
     com: boolean;
+    cn: boolean;
     io: boolean;
     app: boolean;
     dev: boolean;
@@ -167,7 +168,7 @@ export default function Home() {
     setIsVerifying("idle");
   };
 
-  const mergeResults = (results: { name: string; githubAvailable: boolean; domains: { com: boolean; io: boolean; app: boolean; dev: boolean; ai: boolean }; scores: { githubScore: number; domainScore: number; lengthBonus: number; totalScore: number } }[]) => {
+  const mergeResults = (results: { name: string; githubAvailable: boolean; domains: { com: boolean; cn: boolean; io: boolean; app: boolean; dev: boolean; ai: boolean }; scores?: { githubScore: number; domainScore: number; lengthBonus: number; totalScore: number } }[]) => {
     setNames((prevNames) =>
       prevNames.map((nameObj) => {
         const result = results.find((r) => r.name === nameObj.name);
@@ -404,7 +405,7 @@ export default function Home() {
                           )}
                         </div>
                         <div className="flex items-center gap-1">
-                          {(["com", "io", "app", "dev", "ai"] as const).map((tld) => (
+                          {(["com", "cn"] as const).map((tld) => (
                             <div key={tld} className="flex items-center gap-0.5 text-sm">
                               <span
                                 className={`font-mono text-xs px-1 py-0.5 rounded ${

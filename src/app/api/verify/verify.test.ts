@@ -154,8 +154,8 @@ describe('/api/verify', () => {
 
       await POST(request)
 
-      // First fetch is GitHub API call (1 GitHub + 5 DNS = 6 total)
-      expect(mockFetch).toHaveBeenCalledTimes(6)
+      // First fetch is GitHub API call (1 GitHub + 2 DNS = 3 total)
+      expect(mockFetch).toHaveBeenCalledTimes(3)
       const githubCall = mockFetch.mock.calls[0]
       expect(githubCall[1].headers.Authorization).toBe(`Bearer ${mockGithubToken}`)
     })
@@ -183,10 +183,7 @@ describe('/api/verify', () => {
 
       expect(response.status).toBe(200)
       expect(data.data.results[0].domains.com).toBe(true)
-      expect(data.data.results[0].domains.io).toBe(true)
-      expect(data.data.results[0].domains.app).toBe(true)
-      expect(data.data.results[0].domains.dev).toBe(true)
-      expect(data.data.results[0].domains.ai).toBe(true)
+      expect(data.data.results[0].domains.cn).toBe(true)
     })
 
     it('should return all TLDs as unavailable when has A records', async () => {
@@ -210,10 +207,7 @@ describe('/api/verify', () => {
 
       expect(response.status).toBe(200)
       expect(data.data.results[0].domains.com).toBe(false)
-      expect(data.data.results[0].domains.io).toBe(false)
-      expect(data.data.results[0].domains.app).toBe(false)
-      expect(data.data.results[0].domains.dev).toBe(false)
-      expect(data.data.results[0].domains.ai).toBe(false)
+      expect(data.data.results[0].domains.cn).toBe(false)
     })
 
     it('should assume domain available when DNS API fails', async () => {
@@ -241,7 +235,7 @@ describe('/api/verify', () => {
       expect(response.status).toBe(200)
       // On DNS API failure, all TLDs are assumed available
       expect(data.data.results[0].domains.com).toBe(true)
-      expect(data.data.results[0].domains.io).toBe(true)
+      expect(data.data.results[0].domains.cn).toBe(true)
     })
   })
 

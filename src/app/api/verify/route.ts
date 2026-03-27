@@ -9,6 +9,7 @@ export interface VerificationResult {
   githubAvailable: boolean;
   domains: {
     com: boolean;
+    cn: boolean;
     io: boolean;
     app: boolean;
     dev: boolean;
@@ -107,21 +108,21 @@ async function checkDomain(name: string, tld: string): Promise<boolean> {
 }
 
 async function checkAllDomains(name: string): Promise<VerificationResult["domains"]> {
-  const tlds = ["com", "io", "app", "dev", "ai"] as const;
-  type Tld = (typeof tlds)[number];
+  const tlds = ["com", "cn"] as const;
 
   // Sequential check to respect rate limit (1 req/2s)
-  const domains: VerificationResult["domains"] = {
+  const domains = {
     com: false,
+    cn: false,
     io: false,
     app: false,
     dev: false,
     ai: false,
-  };
+  } as VerificationResult["domains"];
 
   for (const tld of tlds) {
     const available = await checkDomain(name, tld);
-    domains[tld as Tld] = available;
+    (domains as Record<string, boolean>)[tld] = available;
   }
 
   return domains;
@@ -129,8 +130,7 @@ async function checkAllDomains(name: string): Promise<VerificationResult["domain
 
 function calculateDomainScore(domains: VerificationResult["domains"]): number {
   if (domains.com) return 1.0;
-  if (domains.io) return 0.7;
-  if (domains.app || domains.dev || domains.ai) return 0.4;
+  if (domains.cn) return 0.8;
   return 0;
 }
 
