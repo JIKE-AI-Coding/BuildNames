@@ -414,25 +414,44 @@ export default function Home() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#111827] hover:bg-[#F9FAFB] rounded-md transition-colors"
             aria-label="查看历史记录"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            历史记录
-            {history.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-[#E5E7EB] text-[#6B7280] text-xs rounded-full">
-                {history.length}
-              </span>
-            )}
+            {/* Mobile: icon only */}
+            <span className="md:hidden">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </span>
+            {/* Desktop: icon + text */}
+            <span className="hidden md:inline-flex items-center gap-2">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              历史记录
+              {history.length > 0 && (
+                <span className="px-1.5 py-0.5 bg-[#E5E7EB] text-[#6B7280] text-xs rounded-full">
+                  {history.length}
+                </span>
+              )}
+            </span>
           </button>
         </div>
       </div>
@@ -455,9 +474,9 @@ export default function Home() {
 
       {/* Main Content - Left Right Split */}
       <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-6">
-        <div className="flex gap-16">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-16">
           {/* Left Column - Form (40%) */}
-          <div className="w-[40%] shrink-0">
+          <div className="w-full md:w-[40%] shrink-0">
             {/* Input Form */}
             <div className="space-y-5">
               <div>
@@ -717,8 +736,10 @@ export default function Home() {
                       key={`${item.name}-${index}`}
                       className="group py-3 px-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg hover:border-[#2563EB] transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      {/* Mobile: stacked layout, Desktop: side-by-side */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        {/* Left: name + stars */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                           <button
                             onClick={() => handleCopy(item.name)}
                             className="text-[#111827] font-semibold text-lg hover:text-[#2563EB] transition-colors cursor-pointer"
@@ -817,7 +838,8 @@ export default function Home() {
                               })()}
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        {/* Right: verification badges - stacked on mobile */}
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
                         {item.verified ? (
                           <>
                             <div className="flex items-center gap-2 text-sm">
