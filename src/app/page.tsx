@@ -433,8 +433,11 @@ export default function Home() {
       <div className="border-b border-[#E5E7EB]">
         <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-6 flex items-center justify-between">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
-              BuildGoodName <span className="text-[#6B7280] font-normal">起好名</span>
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-[#8B5CF6] via-[#EC4899] to-[#2563EB] bg-clip-text text-transparent">
+                BuildGoodName
+              </span>
+              <span className="text-[#6B7280] font-normal ml-1">起好名</span>
             </h1>
             <p className="text-sm text-[#9CA3AF]">AI 驱动的产品名称生成与可用性验证</p>
           </div>
@@ -778,7 +781,7 @@ export default function Home() {
                           </button>
                           {item.chineseName && (
                             <button
-                              onClick={() => handleCopy(item.chineseName)}
+                              onClick={() => item.chineseName && handleCopy(item.chineseName)}
                               className="text-[#6B7280] text-lg hover:text-[#2563EB] transition-colors cursor-pointer"
                               title="点击复制中文名"
                             >
@@ -969,7 +972,7 @@ export default function Home() {
                       1
                     </div>
                     <p className="text-[#111827] font-medium text-center mb-1">填写信息</p>
-                    <p className="text-[#9CA3AF] text-sm text-center">输入产品名称和描述</p>
+                    <p className="text-[#9CA3AF] text-sm text-center">输入产品想法和产品定位</p>
                   </div>
 
                   {/* Connection Line */}
