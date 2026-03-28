@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useHistoryStorage, HistorySession } from "@/hooks/useHistoryStorage";
 import HistoryPanel from "@/components/HistoryPanel";
 
@@ -44,6 +44,35 @@ export default function Home() {
   // History state
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const { history, saveSession, deleteSession, clearAllHistory } = useHistoryStorage();
+
+  // Dropdown ref for click outside detection
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    if (showUserDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showUserDropdown]);
+
+  // Close dropdown on Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && showUserDropdown) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showUserDropdown]);
 
   // Predefined target user options
   const userOptions = [
@@ -500,7 +529,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={userDropdownRef}>
                 <label
                   htmlFor="targetUsers"
                   className="block text-sm font-medium text-[#111827] mb-1.5"
@@ -930,13 +959,43 @@ export default function Home() {
               </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State - Step Guide */}
             {names.length === 0 && !isGenerating && (
-              <div className="pt-8">
-                <p className="text-[#111827] font-medium mb-1">暂无生成结果</p>
-                <p className="text-[#9CA3AF] text-sm">
-                  在左侧输入产品信息，点击"生成名字"开始
-                </p>
+              <div className="min-h-[320px] flex flex-col items-center justify-center px-4">
+                <div className="flex items-start justify-between w-full max-w-md gap-3 md:gap-4">
+                  {/* Step 1 */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center text-lg font-semibold mb-3 shrink-0">
+                      1
+                    </div>
+                    <p className="text-[#111827] font-medium text-center mb-1">填写信息</p>
+                    <p className="text-[#9CA3AF] text-sm text-center">输入产品名称和描述</p>
+                  </div>
+
+                  {/* Connection Line */}
+                  <div className="relative top-6 h-0.5 bg-[#E5E7EB] flex-1 -mx-1"></div>
+
+                  {/* Step 2 */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center text-lg font-semibold mb-3 shrink-0">
+                      2
+                    </div>
+                    <p className="text-[#111827] font-medium text-center mb-1">生成名字</p>
+                    <p className="text-[#9CA3AF] text-sm text-center">点击生成按钮</p>
+                  </div>
+
+                  {/* Connection Line */}
+                  <div className="relative top-6 h-0.5 bg-[#E5E7EB] flex-1 -mx-1"></div>
+
+                  {/* Step 3 */}
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-12 h-12 rounded-full bg-[#2563EB] text-white flex items-center justify-center text-lg font-semibold mb-3 shrink-0">
+                      3
+                    </div>
+                    <p className="text-[#111827] font-medium text-center mb-1">查看结果</p>
+                    <p className="text-[#9CA3AF] text-sm text-center">选择一个名字</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
